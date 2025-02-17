@@ -25,11 +25,11 @@
 #define LED_PIN 7            // Pino de controle dos LEDs
 #define BLUE_LED_PIN 12      // Pino do LED azul (para sinalização, se necessário)
 
-// Tempo para o jogador responder (em milissegundos)
-#define TIME_LIMIT_GAME 8000  // Aumentado para 8 segundos
+// Tempos iniciais (em milissegundos)
+#define INITIAL_PATTERN_TIME 3000
+#define INITIAL_RESPONSE_TIME 8000
 
-// Definições de cores (ordem GRB)
-// Para WS2812, o formato é GRB; para vermelho, G=0, R=255, B=0 → 0x0000FF00
+// Definições de cores (ordem GRB; para vermelho: G=0, R=255, B=0)
 #ifndef GRB_BLACK
 #define GRB_BLACK 0x00000000
 #endif
@@ -49,8 +49,9 @@ uint slice_num_b;
 // Instância do Display OLED
 ssd1306_t display;
 
-// Variável para escalabilidade da dificuldade
-int current_led_count = 5; // Inicia com 5 LEDs ativos
+// Variáveis para escalabilidade da dificuldade
+int current_led_count = 5;  // Inicia com 5 LEDs ativos
+int roundNumber = 1;        // Número da rodada, usado na equação de tempo
 
 // Função para exibir uma mensagem centralizada no OLED
 void display_message(const char *line1, const char *line2) {
@@ -63,7 +64,7 @@ void display_message(const char *line1, const char *line2) {
     sleep_ms(1500);
 }
 
-// Inicializa os botões com pull-up interno
+// Inicializa os botões com resistor de pull-up interno
 void init_buttons() {
     gpio_init(BUTTON_A_PIN);
     gpio_set_dir(BUTTON_A_PIN, GPIO_IN);
@@ -74,8 +75,7 @@ void init_buttons() {
     gpio_pull_up(BUTTON_B_PIN);
 }
 
-// Gera um padrão aleatório para os primeiros 'count' LEDs e
-// define os demais como apagados; atualiza os contadores de cores.
+// Gera um padrão aleatório para os primeiros 'count' LEDs e atualiza os contadores de cores
 void generate_led_pattern(uint32_t pattern[NUM_LEDS], int count, int *expectedRed, int *expectedBlue) {
     *expectedRed = 0;
     *expectedBlue = 0;
@@ -89,22 +89,21 @@ void generate_led_pattern(uint32_t pattern[NUM_LEDS], int count, int *expectedRe
             (*expectedBlue)++;
         }
     }
-    // Preenche o restante com preto
+    // Preenche os LEDs restantes com preto
     for (int i = count; i < NUM_LEDS; i++) {
         pattern[i] = GRB_BLACK;
     }
 }
 
-// Exibe o padrão na matriz atualizando TODOS os LEDs
+// Exibe o padrão na matriz de LEDs atualizando todos os 25 LEDs
 void show_led_pattern(uint32_t pattern[NUM_LEDS]) {
     for (int i = 0; i < NUM_LEDS; i++) {
-        // Atualiza cada LED conforme o valor armazenado
         ws2812b_fill(i, i+1, pattern[i]);
     }
     ws2812b_render();
 }
 
-// Feedback sonoro: toca um beep breve no buzzer indicado
+// Toca um beep breve no buzzer indicado (feedback sonoro)
 void buzzer_beep(uint slice_num, int duration_ms) {
     pwm_set_enabled(slice_num, true);
     sleep_ms(duration_ms);
@@ -149,10 +148,7 @@ int main() {
     pwm_set_gpio_level(BUZZER_B_PIN, 12500);
     pwm_set_enabled(slice_num_b, false);
 
-    // Inicializa os botões
     init_buttons();
-
-    // Semente para números aleatórios
     srand(to_ms_since_boot(get_absolute_time()));
 
     // Animação de "início" (exemplo: cortina abrindo)
@@ -169,74 +165,103 @@ int main() {
         sleep_ms(50);
     }
 
-    // Loop principal do jogo "Led Reflex"
     while (true) {
+        // Calcula os tempos de exibição e de resposta com base na rodada (t = roundNumber)
+        int patternDisplayTime = (int)(INITIAL_PATTERN_TIME * pow(1.1, roundNumber));
+        int responseTime = (int)(INITIAL_RESPONSE_TIME * pow(1.01, roundNumber));
+
         uint32_t pattern[NUM_LEDS];
         int expectedRed = 0, expectedBlue = 0;
         generate_led_pattern(pattern, current_led_count, &expectedRed, &expectedBlue);
 
-        // Exibe o padrão na matriz (todos os 25 LEDs são atualizados)
+        // Exibe o padrão na matriz de LEDs
         show_led_pattern(pattern);
 
-        // Exibe instruções no display OLED
+        // Exibe instruções iniciais no OLED
         ssd1306_clear(&display);
-        ssd1306_draw_string(&display, 0, 0, 1, "Conta as cores!");
+        ssd1306_draw_string(&display, 0, 0, 1, "Conte as cores!");
         char instr[32];
-        sprintf(instr, "Vermelho: ?  Azul: ?");
+        sprintf(instr, "Vermelho: ? | Azul: ?");
         ssd1306_draw_string(&display, 0, 16, 1, instr);
+        sprintf(instr, "A p/ inserir Vermelho");
+        ssd1306_draw_string(&display, 0, 32, 1, instr);
+        sprintf(instr, "B p/ inserir Azul");
+        ssd1306_draw_string(&display, 0, 48, 1, instr);
         ssd1306_show(&display);
 
-        // Aguarda 3 segundos para que o jogador observe o padrão
-        sleep_ms(3000);
+        // Tempo de visualização do padrão
+        sleep_ms(patternDisplayTime);
 
-        // Apaga a matriz de LEDs para não dar dicas visuais durante a contagem
+        // Apaga a matriz para não dar dicas
         ws2812b_fill_all(GRB_BLACK);
         ws2812b_render();
 
-        // Coleta as respostas do jogador dentro do tempo limite
+        // Coleta as respostas do jogador dentro do tempo de resposta
         int userRedPresses = 0;
         int userBluePresses = 0;
         uint64_t startTime = to_ms_since_boot(get_absolute_time());
-        while (to_ms_since_boot(get_absolute_time()) - startTime < TIME_LIMIT_GAME) {
+        while (to_ms_since_boot(get_absolute_time()) - startTime < responseTime) {
             if (!gpio_get(BUTTON_A_PIN)) {
+                ssd1306_clear(&display);
                 userRedPresses++;
-                printf("Botao A pressionado, count=%d\n", userRedPresses);
+                // Atualiza feedback no OLED
+                char countMsgv[32];
+                char countMsgb[32];
+                sprintf(countMsgv, "Vermelho: %d", userRedPresses);
+                ssd1306_draw_string(&display, 0, 0, 1, countMsgv);
+                sprintf(countMsgb, "Azul: %d", userBluePresses);
+                ssd1306_draw_string(&display, 0, 16, 1, countMsgb);
+                ssd1306_show(&display);
                 sleep_ms(200);  // Debounce
             }
             if (!gpio_get(BUTTON_B_PIN)) {
+                ssd1306_clear(&display);
                 userBluePresses++;
-                printf("Botao B pressionado, count=%d\n", userBluePresses);
-                sleep_ms(200);  // Debounce
+                // Atualiza feedback no OLED
+                char countMsgv[32];
+                char countMsgb[32];
+                sprintf(countMsgv, "Vermelho: %d", userRedPresses);
+                ssd1306_draw_string(&display, 0, 0, 1, countMsgv);
+                sprintf(countMsgb, "Azul: %d", userBluePresses);
+                ssd1306_draw_string(&display, 0, 16, 1, countMsgb);
+                ssd1306_show(&display);
+                sleep_ms(200);
             }
         }
 
-        // Compara a resposta do jogador com os valores esperados
+        // Verifica a resposta do jogador
         ssd1306_clear(&display);
         char result[32];
+        char result2[32];
         if (userRedPresses == expectedRed && userBluePresses == expectedBlue) {
             sprintf(result, "Acertou!");
             buzzer_beep(slice_num_a, 100);
             buzzer_beep(slice_num_b, 100);
+            // Se acertou, aumenta a dificuldade
+            roundNumber++;
+            if (current_led_count < NUM_LEDS) {
+                current_led_count++;
+            }
         } else {
-            sprintf(result, "Errou!");
+            // Se errar, mostra a fase alcançada e reinicia tudo
+            sprintf(result, "Voce errou!");
+            sprintf(result2, "Fase alcancada: %d", roundNumber);
             buzzer_beep(slice_num_a, 300);
             buzzer_beep(slice_num_b, 300);
+            // Reinicia dificuldade
+            roundNumber = 0;
+            current_led_count = 5;
         }
         ssd1306_draw_string(&display, 0, 0, 1, result);
+        ssd1306_draw_string(&display, 0, 16, 1, result2);
         char details[32];
         sprintf(details, "R:%d vs %d, B:%d vs %d", expectedRed, userRedPresses, expectedBlue, userBluePresses);
-        ssd1306_draw_string(&display, 0, 16, 1, details);
+        ssd1306_draw_string(&display, 0, 32, 1, details);
         ssd1306_show(&display);
 
-        // Exibe o resultado por 3 segundos
         sleep_ms(3000);
         ssd1306_clear(&display);
         ssd1306_show(&display);
-
-        // Escalonamento: aumenta o número de LEDs ativos a cada rodada até preencher a matriz
-        if (current_led_count < NUM_LEDS) {
-            current_led_count++;
-        }
     }
 
     return 0;
