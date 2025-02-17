@@ -12,49 +12,46 @@
 // Definições para o display OLED
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
-#define SCREEN_ADDRESS 0x3C // Endereço I2C do display
-#define I2C_SDA 14          // Pino SDA do display
-#define I2C_SCL 15          // Pino SCL do display
+#define SCREEN_ADDRESS 0x3C  // Endereço I2C do display
+#define I2C_SDA 14           // Pino SDA do display
+#define I2C_SCL 15           // Pino SCL do display
 
 // Definições dos pinos e componentes
-#define BUZZER_A_PIN 21     // Pino do Buzzer A
-#define BUZZER_B_PIN 23     // Pino do Buzzer B
-#define BUTTON_A_PIN 5      // Pino do Botão A (para contagem dos LEDs vermelhos)
-#define BUTTON_B_PIN 6      // Pino do Botão B (para contagem dos LEDs azuis)
-#define NUM_LEDS 25         // Número total de LEDs na matriz (5x5)
-#define LED_PIN 7           // Pino de controle dos LEDs
-#define BLUE_LED_PIN 12     // Pino do LED azul (para sinalização, se necessário)
+#define BUZZER_A_PIN 21      // Pino do Buzzer A
+#define BUZZER_B_PIN 23      // Pino do Buzzer B
+#define BUTTON_A_PIN 5       // Botão A (contagem dos LEDs vermelhos)
+#define BUTTON_B_PIN 6       // Botão B (contagem dos LEDs azuis)
+#define NUM_LEDS 25          // Número total de LEDs na matriz (5x5)
+#define LED_PIN 7            // Pino de controle dos LEDs
+#define BLUE_LED_PIN 12      // Pino do LED azul (para sinalização, se necessário)
 
 // Tempo para o jogador responder (em milissegundos)
-#define TIME_LIMIT_GAME 5000
+#define TIME_LIMIT_GAME 8000  // Aumentado para 8 segundos
 
-// Caso as macros de cores não estejam definidas, defina-as:
+// Definições de cores (ordem GRB)
+// Para WS2812, o formato é GRB, então para exibir vermelho:
+// G = 0, R = 255, B = 0 → 0x0000FF00
 #ifndef GRB_BLACK
 #define GRB_BLACK 0x00000000
 #endif
 
 #ifndef GRB_RED
-#define GRB_RED 0x00FF0000
+#define GRB_RED 0x0000FF00
 #endif
 
 #ifndef GRB_BLUE
 #define GRB_BLUE 0x000000FF
 #endif
 
-#ifndef GRB_GREEN
-#define GRB_GREEN 0x0000FF00
-#endif
-
-#ifndef GRB_YELLOW
-#define GRB_YELLOW 0x00FFFF00
-#endif
-
-// Variáveis globais para os slices do PWM (para os buzzers)
+// Variáveis globais para os slices do PWM (buzzers)
 uint slice_num_a;
 uint slice_num_b;
 
 // Instância do Display OLED
 ssd1306_t display;
+
+// Variável para escalabilidade da dificuldade (número de LEDs ativos)
+int current_led_count = 5; // Inicia com 5 LEDs
 
 // Função para exibir uma mensagem centralizada no OLED
 void display_message(const char *line1, const char *line2) {
@@ -78,12 +75,12 @@ void init_buttons() {
     gpio_pull_up(BUTTON_B_PIN);
 }
 
-// Função para gerar um padrão aleatório de LEDs na matriz
-// e contar quantos LEDs vermelhos e azuis foram gerados
-void generate_led_pattern(uint32_t pattern[NUM_LEDS], int *expectedRed, int *expectedBlue) {
+// Função para gerar um padrão aleatório de LEDs na matriz (para os primeiros 'count' LEDs)
+// e contar quantos LEDs vermelhos e azuis foram gerados.
+void generate_led_pattern(uint32_t pattern[NUM_LEDS], int count, int *expectedRed, int *expectedBlue) {
     *expectedRed = 0;
     *expectedBlue = 0;
-    for (int i = 0; i < NUM_LEDS; i++) {
+    for (int i = 0; i < count; i++) {
         int r = rand() % 2; // 0 ou 1
         if (r == 0) {
             pattern[i] = GRB_RED;
@@ -93,21 +90,25 @@ void generate_led_pattern(uint32_t pattern[NUM_LEDS], int *expectedRed, int *exp
             (*expectedBlue)++;
         }
     }
+    // Para os LEDs restantes, preenche com preto
+    for (int i = count; i < NUM_LEDS; i++) {
+        pattern[i] = GRB_BLACK;
+    }
 }
 
 // Função para exibir o padrão na matriz de LEDs
-void show_led_pattern(uint32_t pattern[NUM_LEDS]) {
-    // Limpa a matriz (desliga todos os LEDs)
+void show_led_pattern(uint32_t pattern[NUM_LEDS], int count) {
     ws2812b_fill_all(GRB_BLACK);
-    // Define cada LED individualmente usando ws2812b_fill para um intervalo de um LED
-    for (int i = 0; i < NUM_LEDS; i++) {
+    // Define individualmente os LEDs de 0 até count-1
+    for (int i = 0; i < count; i++) {
+        // Aqui usamos ws2812b_fill para definir um único LED
         ws2812b_fill(i, i+1, pattern[i]);
     }
     ws2812b_render();
 }
 
 // Função para tocar um som breve no buzzer (feedback sonoro)
-void buzzer_beep(uint slice_num, uint buzzer_pin, int duration_ms) {
+void buzzer_beep(uint slice_num, int duration_ms) {
     pwm_set_enabled(slice_num, true);
     sleep_ms(duration_ms);
     pwm_set_enabled(slice_num, false);
@@ -157,7 +158,7 @@ int main() {
     // Semente para números aleatórios
     srand(to_ms_since_boot(get_absolute_time()));
 
-    // Animação de "início" (exemplo: cortina abrindo)
+    // Animação de "início"
     int curtain_position = SCREEN_HEIGHT;
     while (curtain_position >= 0) {
         ssd1306_clear(&display);
@@ -173,13 +174,13 @@ int main() {
 
     // Loop principal do jogo "Led Reflex"
     while (true) {
-        // Gera um padrão aleatório para a matriz de LEDs e conta as cores
+        // Gera um padrão aleatório para os primeiros 'current_led_count' LEDs
         uint32_t pattern[NUM_LEDS];
         int expectedRed = 0, expectedBlue = 0;
-        generate_led_pattern(pattern, &expectedRed, &expectedBlue);
+        generate_led_pattern(pattern, current_led_count, &expectedRed, &expectedBlue);
 
         // Exibe o padrão na matriz de LEDs
-        show_led_pattern(pattern);
+        show_led_pattern(pattern, current_led_count);
 
         // Exibe instruções no display OLED
         ssd1306_clear(&display);
@@ -190,13 +191,13 @@ int main() {
         ssd1306_show(&display);
 
         // Aguarda 3 segundos para que o jogador observe o padrão
-        sleep_ms(3000);
+        sleep_ms(400);
 
         // Apaga a matriz de LEDs para não dar dicas visuais durante a contagem
         ws2812b_fill_all(GRB_BLACK);
         ws2812b_render();
 
-        // Inicia a coleta dos toques dos botões dentro do tempo limite
+        // Coleta as respostas do jogador dentro do tempo limite
         int userRedPresses = 0;
         int userBluePresses = 0;
         uint64_t startTime = to_ms_since_boot(get_absolute_time());
@@ -219,13 +220,19 @@ int main() {
         if (userRedPresses == expectedRed && userBluePresses == expectedBlue) {
             sprintf(result, "Acertou!");
             // Feedback sonoro para acerto: beep curto em cada buzzer
-            buzzer_beep(slice_num_a, BUZZER_A_PIN, 100);
-            buzzer_beep(slice_num_b, BUZZER_B_PIN, 100);
+            buzzer_beep(slice_num_a, 100);
+            buzzer_beep(slice_num_b, 100);
+            // Se acertar, aumenta a dificuldade (mais LEDs)
+            if (current_led_count < NUM_LEDS) {
+                current_led_count++;
+            }
         } else {
             sprintf(result, "Errou!");
-            // Feedback sonoro para erro: beep prolongado em cada buzzer
-            buzzer_beep(slice_num_a, BUZZER_A_PIN, 300);
-            buzzer_beep(slice_num_b, BUZZER_B_PIN, 300);
+            // Feedback sonoro para erro: beep prolongado
+            buzzer_beep(slice_num_a, 300);
+            buzzer_beep(slice_num_b, 300);
+            // Em caso de erro, reinicia a dificuldade
+            current_led_count = 5;
         }
         ssd1306_draw_string(&display, 0, 0, 1, result);
         char details[32];
