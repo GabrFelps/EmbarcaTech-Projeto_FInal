@@ -55,6 +55,7 @@ target_link_libraries(Projeto_Embarca
         pico-ssd1306
         bmp280_driver
         ws2812b_animation
+        pico_cyw43_arch_lwip_threadsafe_background
         )
 
 # Add the standard include files to the build
@@ -62,6 +63,7 @@ target_include_directories(Projeto_Embarca PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
         ${CMAKE_CURRENT_LIST_DIR}/libs/pico-ssd1306-main
         ${CMAKE_CURRENT_LIST_DIR}/libs/bmp280_driver
+        ${CMAKE_CURRENT_LIST_DIR}/libs/lwipopts.h
 )
 
 pico_add_extra_outputs(Projeto_Embarca)
