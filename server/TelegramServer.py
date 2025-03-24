@@ -5,7 +5,7 @@ import time
 
 app = Flask(__name__)
 
-# Lista global para armazenar os resultados do jogo (ranking)
+# Lista global para armazenar os resultados do jogo
 game_results = []
 
 # Configurações do Telegram (substitua com seu token e chat_id reais, se necessário)
@@ -66,26 +66,8 @@ def game_result():
             message = (
                 f"❌ <b>Rodada {round_number} - Errou!</b>\n"
                 f"Vermelho: {userRed} (esperado: {expectedRed})\n"
-                f"Azul: {userBlue} (esperado: {expectedBlue})\n"
-                f"Você perdeu! Qual nome você deseja usar para salvar seu score?"
+                f"Azul: {userBlue} (esperado: {expectedBlue})"
             )
-            # Perguntar o nome para salvar o score
-            telegram_response = send_telegram_notification(message)
-
-            # Salva o resultado com a fase alcançada
-            player_name = "Player"  # Default, depois vai ser substituído pelo nome do usuário
-            game_results.append({
-                'name': player_name,
-                'score': round_number,
-                'success': success
-            })
-
-            # Exemplo de uma estrutura para salvar o nome após o jogador responder
-            # Aqui você precisará de algum mecanismo para capturar o nome via Telegram, por exemplo
-            # com um comando adicional no bot
-
-            # Ordena os resultados por score (fase alcançada)
-            game_results = sorted(game_results, key=lambda x: x['score'], reverse=True)
 
         # Envia a mensagem para o Telegram
         telegram_response = send_telegram_notification(message)

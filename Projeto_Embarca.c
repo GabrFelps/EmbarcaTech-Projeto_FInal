@@ -331,10 +331,7 @@ int main() {
     printf("DEBUG: Chamando função connect_wifi()...\n");
     connect_wifi();
 
-    // (Opcional) Iniciar um servidor TCP se necessário
-    // tcp_server(); 
-
-    // Animação de "início" (exemplo: cortina abrindo)
+    // Animação de "início"
     int curtain_position = SCREEN_HEIGHT;
     while (curtain_position >= 0) {
         ssd1306_clear(&display);
@@ -423,6 +420,8 @@ int main() {
             buzzer_beep(slice_num_a, 100);
             buzzer_beep(slice_num_b, 100);
             success = true;
+            // Envia o resultado da rodada para o servidor via HTTP POST
+            send_game_result(roundNumber, expectedRed, userRedPresses, expectedBlue, userBluePresses, success);
             // Se acertou, aumenta a dificuldade
             roundNumber++;
             if (current_led_count < NUM_LEDS) {
@@ -434,6 +433,8 @@ int main() {
             buzzer_beep(slice_num_a, 300);
             buzzer_beep(slice_num_b, 300);
             // Reinicia dificuldade
+            // Envia o resultado da rodada para o servidor via HTTP POST
+            send_game_result(roundNumber, expectedRed, userRedPresses, expectedBlue, userBluePresses, success);
             roundNumber = 1;
             current_led_count = 5;
         }
@@ -444,9 +445,6 @@ int main() {
         ssd1306_draw_string(&display, 0, 32, 1, details);
         ssd1306_show(&display);
         sleep_ms(3000);
-
-        // Envia o resultado da rodada para o servidor via HTTP POST
-        send_game_result(roundNumber, expectedRed, userRedPresses, expectedBlue, userBluePresses, success);
 
         ssd1306_clear(&display);
         ssd1306_show(&display);
