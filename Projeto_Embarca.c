@@ -91,7 +91,7 @@ void connect_wifi() {
 
     // Tenta conectar ao Wi‑Fi com timeout de 30 segundos
     // DEBUG: Tentando conectar na rede: WIFI_SSID
-    printf("DEBUG: Conectando na rede Wi‑Fi: %s\n", WIFI_SSID);
+    printf("DEBUG: Conectando na rede Wi0‑Fi: %s\n", WIFI_SSID);
     if (cyw43_arch_wifi_connect_timeout_ms(WIFI_SSID, WIFI_PASSWORD, CYW43_AUTH_WPA2_AES_PSK, 30000)) {
         ssd1306_clear(&display);
         ssd1306_draw_string(&display, 0, 0, 1, "Falha ao conectar WiFi.");
