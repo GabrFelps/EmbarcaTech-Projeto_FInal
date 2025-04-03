@@ -7,5 +7,23 @@
         "userBlue": 1,
         "timestamp": 1743660279.456896,
         "name": "felipe"
+    },
+    {
+        "round": 2,
+        "expectedRed": 1,
+        "userRed": 5,
+        "expectedBlue": 5,
+        "userBlue": 2,
+        "timestamp": 1743660781.227057,
+        "name": "fulano"
+    },
+    {
+        "round": 3,
+        "expectedRed": 5,
+        "userRed": 5,
+        "expectedBlue": 2,
+        "userBlue": 4,
+        "timestamp": 1743661937.4500628,
+        "name": "a"
     }
 ]
