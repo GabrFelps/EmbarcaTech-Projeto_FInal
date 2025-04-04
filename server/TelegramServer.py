@@ -111,7 +111,7 @@ def game_result():
                 "timestamp": time.time()
             }
             conversation_state = "ask_confirmation"
-            send_telegram_notification("❌ Você errou!\nDeseja salvar o recorde? Responda com <b>sim</b> ou <b>nao</b>.")
+            send_telegram_notification("❌ Você errou!\nDeseja salvar seu recorde? Responda com <b>sim</b> ou <b>nao</b>.")
 
         return jsonify({
             "status": "success",
@@ -156,7 +156,7 @@ def webhook():
             send_telegram_notification("Ótimo! Qual o seu nome?")
             conversation_state = "ask_name"
         elif text == "nao":
-            send_telegram_notification("Recorde não será salvo.")
+            send_telegram_notification("OK! Recorde não será salvo.")
             pending_record = None
             conversation_state = None
     elif conversation_state == "ask_name":

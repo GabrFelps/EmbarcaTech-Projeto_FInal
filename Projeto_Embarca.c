@@ -292,10 +292,11 @@ void show_initial_menu() {
     ssd1306_clear(&display);  // Limpa o display
     // Calcula a posição central para o título do jogo
     int x_center = (SCREEN_WIDTH - strlen("LedReflex Game") * 6) / 2;
+    int x_center2 = (SCREEN_WIDTH - strlen("Aperte A para iniciar") * 6 / 2);
     ssd1306_draw_string(&display, x_center, 20, 1, "LedReflex Game");
     // Exibe instrução para iniciar o jogo
     x_center = (SCREEN_WIDTH - strlen("aperte A para iniciar")) / 2;
-    ssd1306_draw_string(&display, 15, 40, 1, "press A to start");
+    ssd1306_draw_string(&display, x_center2, 40, 1, "press A to start");
     ssd1306_show(&display);
     // Loop que aguarda até o botão A ser pressionado (estado ativo baixo)
     while (gpio_get(BUTTON_A_PIN)) {
@@ -450,6 +451,7 @@ int main() {
             if (userRedPresses == expectedRed && userBluePresses == expectedBlue) {
                 // Caso a contagem esteja correta
                 sprintf(result, "Acertou!");
+                ssd1306_draw_string(&display, 0, 0, 1, result);
                 // Emite beep curto em ambos os buzzers
                 buzzer_beep(slice_num_a, 100);
                 buzzer_beep(slice_num_b, 100);
@@ -463,6 +465,8 @@ int main() {
                 // Se a contagem estiver incorreta, indica erro
                 sprintf(result, "Voce errou!");
                 sprintf(result2, "Fase: %d", roundNumber);
+                ssd1306_draw_string(&display, 12, 0, 1, result);
+                ssd1306_draw_string(&display, 25, 0, 1, result2);
                 // Emite beep longo em ambos os buzzers
                 buzzer_beep(slice_num_a, 300);
                 buzzer_beep(slice_num_b, 300);
