@@ -1,0 +1,138 @@
+[
+    {
+        "round": 1,
+        "expectedRed": 2,
+        "userRed": 2,
+        "expectedBlue": 3,
+        "userBlue": 3,
+        "success": true
+    },
+    {
+        "round": 2,
+        "expectedRed": 3,
+        "userRed": 3,
+        "expectedBlue": 3,
+        "userBlue": 3,
+        "success": true
+    },
+    {
+        "round": 3,
+        "expectedRed": 4,
+        "userRed": 4,
+        "expectedBlue": 3,
+        "userBlue": 3,
+        "success": true
+    },
+    {
+        "round": 4,
+        "expectedRed": 4,
+        "userRed": 4,
+        "expectedBlue": 4,
+        "userBlue": 4,
+        "success": true
+    },
+    {
+        "round": 5,
+        "expectedRed": 1,
+        "userRed": 1,
+        "expectedBlue": 8,
+        "userBlue": 8,
+        "success": true
+    },
+    {
+        "round": 9,
+        "expectedRed": 7,
+        "userRed": 6,
+        "expectedBlue": 6,
+        "userBlue": 1,
+        "success": false
+    },
+    {
+        "round": 1,
+        "expectedRed": 2,
+        "userRed": 2,
+        "expectedBlue": 3,
+        "userBlue": 3,
+        "success": true
+    },
+    {
+        "round": 2,
+        "expectedRed": 1,
+        "userRed": 5,
+        "expectedBlue": 5,
+        "userBlue": 2,
+        "success": false
+    },
+    {
+        "round": 1,
+        "expectedRed": 3,
+        "userRed": 3,
+        "expectedBlue": 2,
+        "userBlue": 2,
+        "success": true
+    },
+    {
+        "round": 2,
+        "expectedRed": 2,
+        "userRed": 6,
+        "expectedBlue": 4,
+        "userBlue": 2,
+        "success": false
+    },
+    {
+        "round": 1,
+        "expectedRed": 1,
+        "userRed": 1,
+        "expectedBlue": 4,
+        "userBlue": 4,
+        "success": true
+    },
+    {
+        "round": 2,
+        "expectedRed": 6,
+        "userRed": 2,
+        "expectedBlue": 0,
+        "userBlue": 4,
+        "success": false
+    },
+    {
+        "round": 1,
+        "expectedRed": 2,
+        "userRed": 2,
+        "expectedBlue": 3,
+        "userBlue": 3,
+        "success": true
+    },
+    {
+        "round": 2,
+        "expectedRed": 5,
+        "userRed": 0,
+        "expectedBlue": 1,
+        "userBlue": 0,
+        "success": false
+    },
+    {
+        "round": 1,
+        "expectedRed": 4,
+        "userRed": 4,
+        "expectedBlue": 1,
+        "userBlue": 1,
+        "success": true
+    },
+    {
+        "round": 2,
+        "expectedRed": 4,
+        "userRed": 4,
+        "expectedBlue": 2,
+        "userBlue": 2,
+        "success": true
+    },
+    {
+        "round": 3,
+        "expectedRed": 5,
+        "userRed": 5,
+        "expectedBlue": 2,
+        "userBlue": 4,
+        "success": false
+    }
+]
